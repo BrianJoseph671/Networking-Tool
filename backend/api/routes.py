@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -14,6 +14,7 @@ from ..agents import (
     LinkedInResearchAgent, GoogleResearchAgent, SocialMediaResearchAgent,
     AgglomerationAgent, MessageAgent, AnalyticsAgent
 )
+from ..utils import extract_text_from_pdf, is_valid_pdf
 
 router = APIRouter(prefix="/api")
 
@@ -205,6 +206,144 @@ async def add_research_data(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to process research: {str(e)}")
+
+
+@router.post("/prospects/{prospect_id}/linkedin-pdf")
+async def upload_linkedin_pdf(
+    prospect_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Upload LinkedIn PDF, extract data, and automatically generate persona"""
+    prospect = db.query(Prospect).filter(Prospect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    try:
+        # Read PDF file
+        pdf_bytes = await file.read()
+
+        # Validate PDF
+        if not is_valid_pdf(pdf_bytes):
+            raise HTTPException(status_code=400, detail="Invalid PDF file")
+
+        # Extract text from PDF
+        try:
+            raw_text = extract_text_from_pdf(pdf_bytes)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to read PDF: {str(e)}")
+
+        if not raw_text.strip():
+            raise HTTPException(status_code=400, detail="PDF appears to be empty or unreadable")
+
+        # Process with LinkedIn agent
+        agent = LinkedInResearchAgent()
+        response = await agent.process(raw_text)
+
+        if not response.success:
+            raise HTTPException(status_code=500, detail=f"Failed to process LinkedIn data: {response.error}")
+
+        structured_data = response.data
+
+        # Store research data
+        research_data = ResearchData(
+            prospect_id=prospect_id,
+            source_type=ResearchSourceType.LINKEDIN,
+            raw_text=raw_text,
+            work_history=json.dumps(structured_data.get("work_history", [])),
+            education=json.dumps(structured_data.get("education", [])),
+            skills=json.dumps(structured_data.get("skills", [])),
+            projects=json.dumps(structured_data.get("projects", [])),
+            interests=json.dumps(structured_data.get("interests", [])),
+            publications=json.dumps(structured_data.get("publications", []))
+        )
+
+        db.add(research_data)
+        db.commit()
+        db.refresh(research_data)
+
+        # Automatically generate persona
+        linkedin_data = {
+            "work_history": structured_data.get("work_history", []),
+            "education": structured_data.get("education", []),
+            "skills": structured_data.get("skills", []),
+            "projects": structured_data.get("projects", []),
+            "interests": structured_data.get("interests", [])
+        }
+
+        # Generate persona
+        persona_agent = AgglomerationAgent()
+        persona_response = await persona_agent.process(
+            prospect_name=prospect.name,
+            linkedin_data=linkedin_data
+        )
+
+        if not persona_response.success:
+            # Research was saved but persona generation failed
+            return {
+                "research_id": research_data.id,
+                "structured_data": structured_data,
+                "persona_generated": False,
+                "persona_error": persona_response.error,
+                "message": "LinkedIn data extracted successfully, but persona generation failed"
+            }
+
+        persona_data = persona_response.data
+
+        # Create or update persona
+        if prospect.persona:
+            persona = prospect.persona
+            persona.summary = persona_data.get("summary")
+            persona.career_trajectory = persona_data.get("career_trajectory")
+            persona.expertise_areas = json.dumps(persona_data.get("expertise_areas", []))
+            persona.notable_achievements = json.dumps(persona_data.get("notable_achievements", []))
+            persona.personality_traits = json.dumps(persona_data.get("personality_traits", []))
+            persona.communication_style = persona_data.get("communication_style")
+            persona.interests_hobbies = json.dumps(persona_data.get("interests_hobbies", []))
+            persona.values = json.dumps(persona_data.get("values", []))
+            persona.connection_strategy = persona_data.get("connection_strategy")
+            persona.conversation_starters = json.dumps(persona_data.get("conversation_starters", []))
+            persona.common_ground = json.dumps(persona_data.get("common_ground", []))
+            persona.confidence_score = persona_data.get("confidence_score", 0.5)
+            persona.updated_at = datetime.utcnow()
+        else:
+            persona = Persona(
+                prospect_id=prospect_id,
+                summary=persona_data.get("summary"),
+                career_trajectory=persona_data.get("career_trajectory"),
+                expertise_areas=json.dumps(persona_data.get("expertise_areas", [])),
+                notable_achievements=json.dumps(persona_data.get("notable_achievements", [])),
+                personality_traits=json.dumps(persona_data.get("personality_traits", [])),
+                communication_style=persona_data.get("communication_style"),
+                interests_hobbies=json.dumps(persona_data.get("interests_hobbies", [])),
+                values=json.dumps(persona_data.get("values", [])),
+                connection_strategy=persona_data.get("connection_strategy"),
+                conversation_starters=json.dumps(persona_data.get("conversation_starters", [])),
+                common_ground=json.dumps(persona_data.get("common_ground", [])),
+                confidence_score=persona_data.get("confidence_score", 0.5)
+            )
+            db.add(persona)
+
+        db.commit()
+        db.refresh(persona)
+
+        return {
+            "research_id": research_data.id,
+            "structured_data": structured_data,
+            "persona_generated": True,
+            "persona": {
+                "id": persona.id,
+                "summary": persona.summary,
+                "confidence_score": persona.confidence_score
+            },
+            "message": "LinkedIn PDF processed and persona generated successfully!"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
 
 
 # ============== PERSONA ENDPOINTS ==============

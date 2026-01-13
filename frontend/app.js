@@ -199,68 +199,90 @@ async function loadProspectsForResearch() {
     }
 }
 
-function selectResearchAgent(agentType) {
-    currentResearchAgent = agentType;
+function handlePDFSelection() {
+    const fileInput = document.getElementById('linkedin-pdf-input');
+    const file = fileInput.files[0];
 
-    const section = document.getElementById('research-input-section');
-    section.classList.remove('hidden');
+    if (file) {
+        // Show filename
+        document.getElementById('pdf-filename-text').textContent = file.name;
+        document.getElementById('pdf-filename').classList.remove('hidden');
 
-    const title = document.getElementById('research-agent-title');
-    const agentNames = {
-        'linkedin': 'LinkedIn Research Data',
-        'google': 'Google/Web Research Data',
-        'social_media': 'Social Media Research Data'
-    };
-    title.textContent = `Paste ${agentNames[agentType]}`;
-
-    // Scroll to input section
-    section.scrollIntoView({ behavior: 'smooth' });
+        // Enable upload button
+        document.getElementById('upload-pdf-btn').disabled = false;
+    }
 }
 
-async function submitResearch() {
+async function uploadLinkedInPDF() {
     const prospectId = document.getElementById('research-prospect-select').value;
-    const rawData = document.getElementById('research-data-input').value.trim();
+    const fileInput = document.getElementById('linkedin-pdf-input');
+    const file = fileInput.files[0];
 
     if (!prospectId) {
         showError('Please select a prospect');
         return;
     }
 
-    if (!rawData) {
-        showError('Please enter research data');
+    if (!file) {
+        showError('Please select a PDF file');
         return;
     }
 
-    if (!currentResearchAgent) {
-        showError('Please select a research agent');
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showError('Please upload a PDF file');
         return;
     }
+
+    // Show loading state
+    const statusDiv = document.getElementById('pdf-upload-status');
+    const statusText = document.getElementById('pdf-status-text');
+    const uploadBtn = document.getElementById('upload-pdf-btn');
+
+    statusDiv.classList.remove('hidden');
+    statusText.textContent = 'Uploading and processing PDF...';
+    uploadBtn.disabled = true;
 
     try {
-        const response = await fetch(`${API_BASE}/prospects/${prospectId}/research`, {
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Upload PDF
+        const response = await fetch(`${API_BASE}/prospects/${prospectId}/linkedin-pdf`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                source_type: currentResearchAgent,
-                raw_text: rawData
-            })
+            body: formData
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Failed to process research');
+            throw new Error(error.detail || 'Failed to process PDF');
         }
 
         const result = await response.json();
-        showSuccess('Research data processed successfully!');
 
-        // Clear input
-        document.getElementById('research-data-input').value = '';
-        document.getElementById('research-input-section').classList.add('hidden');
-        currentResearchAgent = null;
+        if (result.persona_generated) {
+            statusText.textContent = '✅ PDF processed and persona generated successfully!';
+            showSuccess('LinkedIn profile processed! Persona is ready.');
+
+            // Reload prospects list to show updated status
+            setTimeout(() => {
+                loadProspects();
+                statusDiv.classList.add('hidden');
+
+                // Reset form
+                fileInput.value = '';
+                document.getElementById('pdf-filename').classList.add('hidden');
+                uploadBtn.disabled = true;
+            }, 2000);
+        } else {
+            statusText.textContent = '⚠️ PDF processed but persona generation failed';
+            showError('PDF processed but persona generation failed: ' + result.persona_error);
+        }
 
     } catch (error) {
-        showError('Failed to process research: ' + error.message);
+        statusText.textContent = '❌ Failed to process PDF';
+        showError('Failed to process PDF: ' + error.message);
+        uploadBtn.disabled = false;
     }
 }
 

@@ -80,42 +80,64 @@
 
             <!-- Research Tab -->
             <div id="research" class="tab-content p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Research Data</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Upload LinkedIn Profile</h2>
 
-                <div class="mb-4">
+                <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Select Prospect</label>
                     <select id="research-prospect-select" class="w-full border border-gray-300 rounded-lg px-4 py-2">
                         <option value="">-- Select a prospect --</option>
                     </select>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="agent-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-blue-500"
-                         onclick="selectResearchAgent('linkedin')">
-                        <h3 class="text-lg font-bold text-blue-900 mb-2">LinkedIn Research</h3>
-                        <p class="text-sm text-blue-700">Extract professional information, work history, education</p>
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-8 border-2 border-blue-200">
+                    <div class="text-center mb-6">
+                        <svg class="mx-auto h-16 w-16 text-blue-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <h3 class="text-xl font-bold text-blue-900 mb-2">Upload LinkedIn PDF</h3>
+                        <p class="text-sm text-blue-700 mb-6">
+                            Export your LinkedIn profile as PDF and upload it here.<br>
+                            We'll automatically extract the data and generate a persona.
+                        </p>
+
+                        <div class="mb-4">
+                            <label for="linkedin-pdf-input" class="cursor-pointer inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Choose PDF File
+                            </label>
+                            <input type="file" id="linkedin-pdf-input" accept=".pdf" class="hidden" onchange="handlePDFSelection()">
+                        </div>
+
+                        <div id="pdf-filename" class="hidden mb-4 text-sm text-gray-700">
+                            <span class="font-semibold">Selected:</span> <span id="pdf-filename-text"></span>
+                        </div>
                     </div>
 
-                    <div class="agent-card bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-green-500"
-                         onclick="selectResearchAgent('google')">
-                        <h3 class="text-lg font-bold text-green-900 mb-2">Google Research</h3>
-                        <p class="text-sm text-green-700">Find projects, publications, speaking engagements</p>
-                    </div>
+                    <button id="upload-pdf-btn" onclick="uploadLinkedInPDF()" disabled
+                            class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition">
+                        Upload and Process PDF
+                    </button>
 
-                    <div class="agent-card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-purple-500"
-                         onclick="selectResearchAgent('social_media')">
-                        <h3 class="text-lg font-bold text-purple-900 mb-2">Social Media</h3>
-                        <p class="text-sm text-purple-700">Discover interests, personality traits, values</p>
+                    <div id="pdf-upload-status" class="mt-4 hidden">
+                        <div class="bg-white rounded-lg p-4 text-sm">
+                            <div class="flex items-center">
+                                <div class="loading mr-3"></div>
+                                <span id="pdf-status-text">Processing PDF...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="research-input-section" class="hidden">
-                    <h3 class="text-lg font-semibold mb-2" id="research-agent-title">Paste Research Data</h3>
-                    <textarea id="research-data-input" class="w-full border border-gray-300 rounded-lg px-4 py-2 h-48"
-                              placeholder="Paste the research data here..."></textarea>
-                    <button onclick="submitResearch()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        Process Research Data
-                    </button>
+                <div class="mt-6 bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+                    <strong>📝 How to export your LinkedIn profile as PDF:</strong>
+                    <ol class="list-decimal list-inside mt-2 space-y-1">
+                        <li>Go to your LinkedIn profile</li>
+                        <li>Click "More" in your profile section</li>
+                        <li>Select "Save to PDF"</li>
+                        <li>Upload the downloaded PDF here</li>
+                    </ol>
                 </div>
             </div>
 
