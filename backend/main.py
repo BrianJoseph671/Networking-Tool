@@ -30,17 +30,26 @@ app.add_middleware(
 app.include_router(router)
 
 # Serve frontend static files
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+print(f"Frontend path: {frontend_path}")
+print(f"Frontend exists: {os.path.exists(frontend_path)}")
 
-    @app.get("/")
-    async def serve_frontend():
-        """Serve the frontend index.html"""
-        index_path = os.path.join(frontend_path, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-        return {"message": "Frontend not found"}
+@app.get("/")
+async def serve_frontend():
+    """Serve the frontend index.html"""
+    index_path = os.path.join(frontend_path, "index.html")
+    print(f"Serving index from: {index_path}")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Frontend not found", "path": frontend_path, "index_exists": os.path.exists(index_path)}
+
+# Mount static files for JS and CSS
+if os.path.exists(frontend_path):
+    try:
+        app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+        print("✅ Static files mounted")
+    except Exception as e:
+        print(f"❌ Failed to mount static files: {e}")
 
 
 @app.on_event("startup")
