@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Networking Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .agent-card {
+            transition: all 0.3s ease;
+        }
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 class="text-3xl font-bold text-gray-900">Multi-Agent Networking Tool</h1>
+            <p class="text-gray-600 mt-1">AI-powered networking assistant with specialized agents</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tabs -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button class="tab-button active px-6 py-3 text-sm font-medium" onclick="switchTab('prospects')">
+                        Prospects
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium" onclick="switchTab('research')">
+                        Research
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium" onclick="switchTab('messages')">
+                        Messages
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium" onclick="switchTab('analytics')">
+                        Analytics
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Prospects Tab -->
+            <div id="prospects" class="tab-content active p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Your Prospects</h2>
+                    <button onclick="showAddProspectModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        + Add Prospect
+                    </button>
+                </div>
+
+                <div id="prospects-list" class="space-y-4">
+                    <!-- Prospects will be loaded here -->
+                    <p class="text-gray-500">Loading prospects...</p>
+                </div>
+            </div>
+
+            <!-- Research Tab -->
+            <div id="research" class="tab-content p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Research Data</h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Prospect</label>
+                    <select id="research-prospect-select" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        <option value="">-- Select a prospect --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="agent-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-blue-500"
+                         onclick="selectResearchAgent('linkedin')">
+                        <h3 class="text-lg font-bold text-blue-900 mb-2">LinkedIn Research</h3>
+                        <p class="text-sm text-blue-700">Extract professional information, work history, education</p>
+                    </div>
+
+                    <div class="agent-card bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-green-500"
+                         onclick="selectResearchAgent('google')">
+                        <h3 class="text-lg font-bold text-green-900 mb-2">Google Research</h3>
+                        <p class="text-sm text-green-700">Find projects, publications, speaking engagements</p>
+                    </div>
+
+                    <div class="agent-card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 cursor-pointer border-2 border-transparent hover:border-purple-500"
+                         onclick="selectResearchAgent('social_media')">
+                        <h3 class="text-lg font-bold text-purple-900 mb-2">Social Media</h3>
+                        <p class="text-sm text-purple-700">Discover interests, personality traits, values</p>
+                    </div>
+                </div>
+
+                <div id="research-input-section" class="hidden">
+                    <h3 class="text-lg font-semibold mb-2" id="research-agent-title">Paste Research Data</h3>
+                    <textarea id="research-data-input" class="w-full border border-gray-300 rounded-lg px-4 py-2 h-48"
+                              placeholder="Paste the research data here..."></textarea>
+                    <button onclick="submitResearch()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                        Process Research Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages Tab -->
+            <div id="messages" class="tab-content p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Generate Messages</h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Prospect</label>
+                    <select id="message-prospect-select" class="w-full border border-gray-300 rounded-lg px-4 py-2" onchange="loadPersona()">
+                        <option value="">-- Select a prospect --</option>
+                    </select>
+                </div>
+
+                <div id="persona-display" class="hidden mb-6 bg-gray-50 rounded-lg p-4">
+                    <h3 class="font-semibold mb-2">Persona Summary:</h3>
+                    <p id="persona-summary" class="text-gray-700"></p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Channel</label>
+                        <select id="message-channel" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="email">Email</option>
+                            <option value="twitter">Twitter</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                        <select id="message-tone" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                            <option value="professional">Professional</option>
+                            <option value="casual">Casual</option>
+                            <option value="warm">Warm</option>
+                            <option value="direct">Direct</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Familiarity Level</label>
+                        <select id="message-familiarity" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                            <option value="stranger">Stranger</option>
+                            <option value="acquaintance">Acquaintance</option>
+                            <option value="colleague">Colleague</option>
+                            <option value="friend">Friend</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Connection Degree</label>
+                        <select id="message-degree" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                            <option value="1">1st Degree</option>
+                            <option value="2">2nd Degree</option>
+                            <option value="3">3rd+ Degree</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Custom Context (Optional)</label>
+                    <textarea id="message-context" class="w-full border border-gray-300 rounded-lg px-4 py-2 h-24"
+                              placeholder="Any additional context for the message..."></textarea>
+                </div>
+
+                <button onclick="generateMessage()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    Generate Message
+                </button>
+
+                <div id="generated-message" class="hidden mt-6 bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-semibold mb-2">Generated Message:</h3>
+                    <div id="message-subject" class="mb-2"></div>
+                    <div id="message-body" class="text-gray-700 whitespace-pre-wrap mb-4"></div>
+                    <div class="flex gap-2">
+                        <button onclick="copyMessage()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                            Copy Message
+                        </button>
+                        <button onclick="logOutreach()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                            Mark as Sent
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="tab-content p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Analytics Dashboard</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-blue-900 mb-1">Total Sent</h3>
+                        <p id="stat-total-sent" class="text-3xl font-bold text-blue-600">-</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-green-900 mb-1">Response Rate</h3>
+                        <p id="stat-response-rate" class="text-3xl font-bold text-green-600">-</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-purple-900 mb-1">Follow-ups Needed</h3>
+                        <p id="stat-follow-ups" class="text-3xl font-bold text-purple-600">-</p>
+                    </div>
+                </div>
+
+                <button onclick="loadAnalytics()" class="mb-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    Refresh Analytics
+                </button>
+
+                <div id="analytics-details" class="bg-white border border-gray-200 rounded-lg p-4 mt-4">
+                    <p class="text-gray-500">Click "Refresh Analytics" to load detailed insights</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Prospect Modal -->
+    <div id="add-prospect-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">Add New Prospect</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input type="text" id="prospect-name" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="prospect-email" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                    <input type="text" id="prospect-linkedin" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Company</label>
+                    <input type="text" id="prospect-company" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Title</label>
+                    <input type="text" id="prospect-title" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+                <button onclick="addProspect()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    Add Prospect
+                </button>
+                <button onclick="hideAddProspectModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Core Backend
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-dotenv==1.0.0
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# AI/LLM
+anthropic==0.18.1
+
+# Data Processing
+pydantic==2.5.3
+python-multipart==0.0.6
+
+# Scheduling
+apscheduler==3.10.4
+
+# Utilities
+python-dateutil==2.8.2
+httpx==0.26.0
